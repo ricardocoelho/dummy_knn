@@ -1,0 +1,5 @@
+Para rodar o programa:
+
+$ python3 knn.py
+
+Após rodar o script completo, é gerado um arquivo out.csv com as medidas.
