@@ -85,7 +85,7 @@ def main():
 
         #roda o KNN para cada instancia do fold atual
         for j, test_row in test.iterrows():
-            resp= KNN(train, test_row)
+            resp= KNN(train.copy(), test_row)
             print("[{}/{}]{:02.2f}% to complete...".format(i+1, K,100*j/len(test.index) ), end='\r')
 
             #atualiza a matrix de confusao
