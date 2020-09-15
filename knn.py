@@ -23,22 +23,26 @@ def get_f_measure(t_conf, b=1):
     return (1+b_2)*(prec*rev)/(b_2*prec + rev)
 
 def euclidean_dist(row, t_row):
-    return math.sqrt(sum(map(lambda x,y: math.pow(x-y,2),row[:-1], t_row[:-1])))
+    return math.sqrt(sum(map(lambda x,y: math.pow(x-y,2), row[:-1], t_row[:-1])))
 
-def KNN(train_df, test_inst, K=5):
+def normalize_data(train_df, test_df):
     #normalizar todos os atributos exceto o ultimo:
     for col in train_df.columns[:-1]:
         max_val= max(train_df[col])
         min_val= min(train_df[col])
         train_df[col]= train_df[col].apply(lambda x: (x-min_val)/(max_val-min_val))
-        x= test_inst[col]
-        test_inst[col]= (x-min_val)/(max_val-min_val)
+        test_df[col]= test_df[col].apply(lambda x: (x-min_val)/(max_val-min_val))
+    return train_df, test_df
+
+
+def KNN(train_df, test_inst, K=5):
 
     #aplica a distancia euclidiana em todas as linhas e salva na nova coluna 'Diff'
     train_df['Diff']= train_df.apply(euclidean_dist, t_row=test_inst, axis=1)
 
     #ordena e retorna novo dataframe com os K primeiros valores
     df_1 = train_df.sort_values(by='Diff').head(K)
+
     #retorna a classe da maioria
     return  int(sum(df_1['Outcome']==1) > sum(df_1['Outcome']==0))
 
@@ -80,23 +84,28 @@ def main():
         train = pd.concat(fold_list[:i] + fold_list[i+1:], axis=0).reset_index(drop=True)
         test = fold_list[i]
 
-        #inicializa a matrix de confusao
+        #normaliza os dados
+        train, test = normalize_data(train.copy(), test.copy())
+
+        #inicializa a matriz de confusao
         table_of_confusion_list[i]= {'VP':0,'VN':0,'FP':0,'FN':0}
 
-        #roda o KNN para cada instancia do fold atual
+        #roda o KNN para cada instancia do fold de teste atual
         for j, test_row in test.iterrows():
             resp= KNN(train.copy(), test_row)
             print("[{}/{}]{:02.2f}% to complete...".format(i+1, K,100*j/len(test.index) ), end='\r')
 
-            #atualiza a matrix de confusao
-            if resp==1 and test_row['Outcome']==1:
-                table_of_confusion_list[i]['VP'] += 1
-            elif resp==1 and test_row['Outcome']==0:
-                table_of_confusion_list[i]['FP'] += 1
-            elif resp==0 and test_row['Outcome']==1:
-                table_of_confusion_list[i]['FN'] += 1
+            #atualiza a matriz de confusao
+            if resp == test_row['Outcome']:
+                if resp == 1:
+                    table_of_confusion_list[i]['VP'] += 1
+                else:
+                    table_of_confusion_list[i]['VN'] += 1
             else:
-                table_of_confusion_list[i]['VN'] += 1
+                if resp == 1:
+                    table_of_confusion_list[i]['FP'] += 1
+                else:
+                    table_of_confusion_list[i]['FN'] += 1
 
     print()
 
